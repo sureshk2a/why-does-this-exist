@@ -1,13 +1,10 @@
-export type { TicketInfo, TicketConfig } from './types.js';
-export { fetchGitHubIssue } from './github.js';
-export { fetchJiraTicket } from './jira.js';
-export { fetchLinearTicket } from './linear.js';
-
 import { fetchGitHubIssue } from './github.js';
 import { fetchJiraTicket } from './jira.js';
 import { fetchLinearTicket } from './linear.js';
 import type { TicketInfo, TicketConfig } from './types.js';
 
+export { fetchGitHubIssue, fetchJiraTicket, fetchLinearTicket };
+export type { TicketInfo, TicketConfig };
 /**
  * Given a ticket ID string, determine its source and fetch details.
  * Handles: #123 (GitHub), PROJ-123 (Jira / Linear)
