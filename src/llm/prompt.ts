@@ -1,4 +1,4 @@
-import type { LLMContext } from './types.js';
+import type { LLMContext, LLMResult } from './types.js';
 
 export const SYSTEM_PROMPT = `You are a code archaeology assistant. Given metadata about a specific line of code — including the git blame, pull request description, and linked ticket context — explain WHY this code exists in plain, concise English.
 
@@ -47,9 +47,9 @@ export function buildUserPrompt(ctx: LLMContext): string {
   return parts.join('\n');
 }
 
-export function parseResponse(raw: string): import('./types.js').LLMResult {
+export function parseResponse(raw: string): LLMResult {
   try {
-    const parsed = JSON.parse(raw) as Partial<import('./types.js').LLMResult>;
+    const parsed = JSON.parse(raw) as Partial<LLMResult>;
     return {
       explanation: parsed.explanation ?? 'No explanation available.',
       summary: parsed.summary ?? '',
