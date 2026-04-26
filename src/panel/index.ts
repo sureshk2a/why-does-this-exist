@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ChainResult } from './chain';
+import type { ChainResult } from '../chain.js';
 
 export class ResultPanel {
   private static currentPanel: ResultPanel | undefined;
@@ -7,9 +7,7 @@ export class ResultPanel {
 
   private constructor(panel: vscode.WebviewPanel) {
     this._panel = panel;
-    this._panel.onDidDispose(() => {
-      ResultPanel.currentPanel = undefined;
-    });
+    this._panel.onDidDispose(() => { ResultPanel.currentPanel = undefined; });
   }
 
   static show(
@@ -36,25 +34,12 @@ export class ResultPanel {
     ResultPanel.currentPanel._update(result, lineText, lineNumber, fileName);
   }
 
-  private _update(
-    result: ChainResult,
-    lineText: string,
-    lineNumber: number,
-    fileName: string
-  ): void {
+  private _update(result: ChainResult, lineText: string, lineNumber: number, fileName: string): void {
     this._panel.webview.html = buildHtml(result, lineText, lineNumber, fileName);
   }
 }
 
-function confidenceBadge(level: 'high' | 'medium' | 'low'): string {
-  const colors: Record<string, string> = {
-    high: '#27AE60',
-    medium: '#F39C12',
-    low: '#E74C3C',
-  };
-  const bg = colors[level] ?? '#555';
-  return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;text-transform:uppercase;font-weight:600;">${level} confidence</span>`;
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {
   return str
@@ -64,43 +49,38 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function buildHtml(
-  result: ChainResult,
-  lineText: string,
-  lineNumber: number,
-  fileName: string
-): string {
-  const { blame, pr, tickets, llm } = result;
+function confidenceBadge(level: 'high' | 'medium' | 'low'): string {
+  const colors: Record<string, string> = { high: '#27AE60', medium: '#F39C12', low: '#E74C3C' };
+  return `<span style="background:${colors[level] ?? '#555'};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;text-transform:uppercase;font-weight:600;">${level} confidence</span>`;
+}
 
-  const ticketsHtml = tickets.length > 0
-    ? tickets.map((t) => `
-        <div class="card ticket">
-          <div class="card-header">
-            <span class="source-badge ${t.source}">${t.source.toUpperCase()}</span>
-            <a href="${escapeHtml(t.url)}">${escapeHtml(t.id)}: ${escapeHtml(t.title)}</a>
-          </div>
-          ${t.description ? `<p class="desc">${escapeHtml(t.description.substring(0, 400))}${t.description.length > 400 ? '\u2026' : ''}</p>` : ''}
-        </div>`).join('')
-    : '<p class="muted">No linked tickets found.</p>';
+function ticketCard(t: ChainResult['tickets'][number]): string {
+  const desc = t.description
+    ? `<p class="desc">${escapeHtml(t.description.substring(0, 400))}${t.description.length > 400 ? '\u2026' : ''}</p>`
+    : '';
+  return `
+    <div class="card ticket">
+      <div class="card-header">
+        <span class="source-badge ${t.source}">${t.source.toUpperCase()}</span>
+        <a href="${escapeHtml(t.url)}">${escapeHtml(t.id)}: ${escapeHtml(t.title)}</a>
+      </div>
+      ${desc}
+    </div>`;
+}
 
-  const prHtml = pr
-    ? `<div class="card">
-        <div class="card-header">
-          <span class="pr-num">PR #${pr.number}</span>
-          <a href="${escapeHtml(pr.url)}">${escapeHtml(pr.title)}</a>
-        </div>
-        <div class="meta">by <strong>${escapeHtml(pr.author)}</strong>${pr.mergedAt ? ` &middot; merged ${pr.mergedAt.split('T')[0]}` : ''}</div>
-      </div>`
-    : '<p class="muted">No pull request found for this commit.</p>';
+function prCard(pr: NonNullable<ChainResult['pr']>): string {
+  const mergedLine = pr.mergedAt ? ` &middot; merged ${pr.mergedAt.split('T')[0]}` : '';
+  return `
+    <div class="card">
+      <div class="card-header">
+        <span class="pr-num">PR #${pr.number}</span>
+        <a href="${escapeHtml(pr.url)}">${escapeHtml(pr.title)}</a>
+      </div>
+      <div class="meta">by <strong>${escapeHtml(pr.author)}</strong>${mergedLine}</div>
+    </div>`;
+}
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Why Does This Exist?</title>
-<style>
+const CSS = `
   body { font-family: var(--vscode-font-family); font-size: 13px; color: var(--vscode-foreground); background: var(--vscode-editor-background); padding: 20px; margin: 0; }
   h1 { font-size: 16px; margin: 0 0 4px; }
   h2 { font-size: 13px; font-weight: 600; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; }
@@ -122,7 +102,25 @@ function buildHtml(
   .blame-row { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; opacity: 0.8; }
   .blame-row span::before { content: attr(data-label) ': '; font-weight: 600; opacity: 0.7; }
   .divider { border: none; border-top: 1px solid var(--vscode-widget-border); margin: 20px 0; }
-</style>
+`;
+
+function buildHtml(result: ChainResult, lineText: string, lineNumber: number, fileName: string): string {
+  const { blame, pr, tickets, llm } = result;
+
+  const ticketsHtml = tickets.length > 0
+    ? tickets.map(ticketCard).join('')
+    : '<p class="muted">No linked tickets found.</p>';
+
+  const prHtml = pr ? prCard(pr) : '<p class="muted">No pull request found for this commit.</p>';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Does This Exist?</title>
+<style>${CSS}</style>
 </head>
 <body>
 <h1>Why Does This Exist?</h1>

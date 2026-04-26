@@ -1,0 +1,10 @@
+.vscode/**
+src/**
+.github/**
+node_modules/**
+**/*.map
+tsconfig.json
+.gitignore
+.vscodeignore
+architecture.mermaid
+CONTEXT.md

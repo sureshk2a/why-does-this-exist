@@ -15,18 +15,37 @@ export interface PullRequestInfo {
  * Supports both HTTPS and SSH formats.
  */
 export function parseGitHubRemote(remoteUrl: string): { owner: string; repo: string } | null {
-  // HTTPS: https://github.com/owner/repo.git
-  const httpsMatch = remoteUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)(\.git)?/);
-  if (httpsMatch) {
-    return { owner: httpsMatch[1], repo: httpsMatch[2] };
+  const match = remoteUrl.match(/github\.com[/:]([^/]+)\/([^/.]+)(\.git)?/);
+  if (match) {
+    return { owner: match[1], repo: match[2] };
   }
   return null;
 }
 
 /**
+ * Extracts ticket IDs from PR body text.
+ * Handles: Fixes #123, Closes #456, JIRA-789, LINEAR-101, ABC-202
+ */
+export function extractTicketIds(text: string): string[] {
+  const ids = new Set<string>();
+  let m: RegExpExecArray | null;
+
+  const githubKeyword = /(?:closes?|fixes?|resolves?)\s+#(\d+)/gi;
+  while ((m = githubKeyword.exec(text)) !== null) { ids.add(`#${m[1]}`); }
+
+  const bareGithub = /#(\d{1,6})\b/g;
+  while ((m = bareGithub.exec(text)) !== null) { ids.add(`#${m[1]}`); }
+
+  const jiraPattern = /\b([A-Z][A-Z0-9]+-\d+)\b/g;
+  while ((m = jiraPattern.exec(text)) !== null) { ids.add(m[1]); }
+
+  return [...ids];
+}
+
+/**
  * Finds the pull request that introduced a commit.
  * Primary: GitHub's commits/:sha/pulls endpoint.
- * Fallback: search PRs by commit SHA in title/body.
+ * Fallback: search PRs by short SHA (handles squash merges).
  */
 export async function findPullRequestForCommit(
   token: string,
@@ -37,22 +56,18 @@ export async function findPullRequestForCommit(
   const octokit = new Octokit({ auth: token });
 
   try {
-    // Primary path: list PRs associated with commit
     const { data } = await octokit.repos.listPullRequestsAssociatedWithCommit({
       owner,
       repo,
       commit_sha: commitSha,
     });
-
     if (data.length > 0) {
-      const pr = data[0];
-      return buildPrInfo(pr);
+      return buildPrInfo(data[0]);
     }
   } catch {
-    // Fall through to search fallback
+    // fall through to search fallback
   }
 
-  // Fallback: search merged PRs that mention the short SHA
   return searchPrByCommitSha(octokit, owner, repo, commitSha);
 }
 
@@ -62,17 +77,18 @@ async function searchPrByCommitSha(
   repo: string,
   commitSha: string
 ): Promise<PullRequestInfo | null> {
-  const shortSha = commitSha.substring(0, 7);
   try {
     const { data } = await octokit.search.issuesAndPullRequests({
-      q: `repo:${owner}/${repo} is:pr is:merged ${shortSha}`,
+      q: `repo:${owner}/${repo} is:pr is:merged ${commitSha.substring(0, 7)}`,
       per_page: 1,
     });
-
     if (data.items.length === 0) { return null; }
 
-    const prNumber = data.items[0].number;
-    const { data: pr } = await octokit.pulls.get({ owner, repo, pull_number: prNumber });
+    const { data: pr } = await octokit.pulls.get({
+      owner,
+      repo,
+      pull_number: data.items[0].number,
+    });
     return buildPrInfo(pr);
   } catch {
     return null;
@@ -91,33 +107,4 @@ function buildPrInfo(pr: any): PullRequestInfo {
     mergedAt: pr.merged_at ?? null,
     linkedTicketIds: extractTicketIds(body),
   };
-}
-
-/**
- * Extracts ticket IDs from PR body text.
- * Handles: Fixes #123, Closes #456, JIRA-789, LINEAR-101, ABC-202
- */
-export function extractTicketIds(text: string): string[] {
-  const ids = new Set<string>();
-
-  // GitHub Issues: #123, Fixes #123, Closes #456, Resolves #789
-  const githubPattern = /(?:closes?|fixes?|resolves?)\s+#(\d+)/gi;
-  let m: RegExpExecArray | null;
-  while ((m = githubPattern.exec(text)) !== null) {
-    ids.add(`#${m[1]}`);
-  }
-
-  // Bare #number references
-  const bareGithub = /#(\d{1,6})\b/g;
-  while ((m = bareGithub.exec(text)) !== null) {
-    ids.add(`#${m[1]}`);
-  }
-
-  // Jira-style: PROJ-123, ABC-456
-  const jiraPattern = /\b([A-Z][A-Z0-9]+-\d+)\b/g;
-  while ((m = jiraPattern.exec(text)) !== null) {
-    ids.add(m[1]);
-  }
-
-  return [...ids];
 }

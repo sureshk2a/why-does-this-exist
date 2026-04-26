@@ -25,23 +25,19 @@ export async function blameFile(
   const git: SimpleGit = simpleGit(repoRoot);
   const relativeFilePath = path.relative(repoRoot, filePath).replace(/\\/g, '/');
 
-  // --porcelain gives machine-readable output
   const blameOutput = await git.raw([
     'blame',
-    `--porcelain`,
-    `-L`,
+    '--porcelain',
+    '-L',
     `${lineNumber},${lineNumber}`,
     relativeFilePath,
   ]);
 
   const blamed = parsePorcelainBlame(blameOutput);
-
   if (!blamed) {
     throw new Error(`Could not extract blame info for line ${lineNumber}`);
   }
 
-  // If the blamed commit looks like a trivial change, walk back to find a more
-  // meaningful commit (heuristic: very short commit message or "format"/"lint" keyword)
   if (isTrivialCommit(blamed.commitMessage)) {
     const meaningful = await findMeaningfulCommit(git, relativeFilePath, blamed.commitSha);
     if (meaningful) {
@@ -53,19 +49,17 @@ export async function blameFile(
 }
 
 async function getRepoRoot(filePath: string): Promise<string> {
-  const dir = path.dirname(filePath);
-  const git: SimpleGit = simpleGit(dir);
-  const root = await git.revparse(['--show-toplevel']);
-  return root.trim();
+  const git: SimpleGit = simpleGit(path.dirname(filePath));
+  return (await git.revparse(['--show-toplevel'])).trim();
 }
 
-function parsePorcelainBlame(output: string): Omit<BlameResult, 'repoRoot' | 'relativeFilePath'> | null {
+export function parsePorcelainBlame(
+  output: string
+): Omit<BlameResult, 'repoRoot' | 'relativeFilePath'> | null {
   const lines = output.split('\n');
   if (lines.length < 1) { return null; }
 
-  // First line: <SHA> <orig-line> <final-line> [<num-lines>]
-  const shaLine = lines[0].split(' ');
-  const commitSha = shaLine[0];
+  const commitSha = lines[0].split(' ')[0];
   if (!commitSha || commitSha.length < 7) { return null; }
 
   const shortSha = commitSha.substring(0, 7);
@@ -75,19 +69,18 @@ function parsePorcelainBlame(output: string): Omit<BlameResult, 'repoRoot' | 're
   let commitMessage = '';
 
   for (const line of lines.slice(1)) {
-    if (line.startsWith('author ')) { author = line.slice(7); }
+    if (line.startsWith('author '))        { author = line.slice(7); }
     else if (line.startsWith('author-mail ')) { authorEmail = line.slice(12).replace(/[<>]/g, ''); }
     else if (line.startsWith('author-time ')) {
-      const timestamp = parseInt(line.slice(12), 10);
-      date = new Date(timestamp * 1000).toISOString().split('T')[0];
+      date = new Date(parseInt(line.slice(12), 10) * 1000).toISOString().split('T')[0];
     }
-    else if (line.startsWith('summary ')) { commitMessage = line.slice(8); }
+    else if (line.startsWith('summary '))  { commitMessage = line.slice(8); }
   }
 
   return { commitSha, shortSha, author, authorEmail, date, commitMessage };
 }
 
-function isTrivialCommit(message: string): boolean {
+export function isTrivialCommit(message: string): boolean {
   const trivialPatterns = [
     /^format/i, /^lint/i, /^prettier/i, /^eslint/i,
     /^fix typo/i, /^whitespace/i, /^wip$/i, /^cleanup/i,
@@ -101,10 +94,7 @@ async function findMeaningfulCommit(
   relativeFilePath: string,
   afterSha: string
 ): Promise<Omit<BlameResult, 'repoRoot' | 'relativeFilePath'> | null> {
-  // Walk the log for this file, skip trivial commits
   const log = await git.log({ file: relativeFilePath, maxCount: 20 });
-
-  // Find the position of the blamed commit in the log
   const idx = log.all.findIndex((c) => c.hash.startsWith(afterSha));
   const candidates = idx >= 0 ? log.all.slice(idx + 1) : log.all;
 

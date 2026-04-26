@@ -1,12 +1,19 @@
 {
-  "name": "why-does-this-exist",
-  "displayName": "Why Does This Exist?",
+  "name": "why-was-this-written",
+  "displayName": "Why Was This Written",
   "description": "Traces any line of code back through git blame \u2192 PR \u2192 ticket \u2192 LLM to explain why it was written",
   "version": "0.0.1",
+  "publisher": "sureshk2a",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sureshk2a/why-does-this-exist"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": ["Other"],
+  "keywords": ["git", "blame", "jira", "github", "ai", "copilot", "code archaeology"],
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
