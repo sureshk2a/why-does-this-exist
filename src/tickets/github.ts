@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { TicketInfo } from './types.js';
+import type { TicketInfo } from './types.js';
 
 export async function fetchGitHubIssue(
   token: string,
