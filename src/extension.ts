@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { runChain } from './chain';
-import { ResultPanel } from './panel';
+import { runChain } from './chain.js';
+import { ResultPanel } from './panel/index.js';
 
 export function activate(context: vscode.ExtensionContext) {
   const command = vscode.commands.registerCommand(

@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import simpleGit from 'simple-git';
 import * as path from 'path';
-import { blameFile, BlameResult } from './git';
-import { findPullRequestForCommit, parseGitHubRemote, PullRequestInfo } from './github';
-import { fetchTicket, TicketInfo } from './tickets';
-import { synthesizeWithOpenAI, synthesizeWithAnthropic, synthesizeWithOllama, synthesizeWithWatsonX, LLMResult } from './llm';
+import { blameFile, BlameResult } from './git/index.js';
+import { findPullRequestForCommit, parseGitHubRemote, PullRequestInfo } from './github/index.js';
+import { fetchTicket, TicketInfo } from './tickets/index.js';
+import { synthesizeWithOpenAI, synthesizeWithAnthropic, synthesizeWithOllama, synthesizeWithWatsonX, LLMResult } from './llm/index.js';
 
 export interface ChainInput {
   filePath: string;
