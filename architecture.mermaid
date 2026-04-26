@@ -1,0 +1,47 @@
+flowchart TD
+    A([Developer selects code\nin VS Code]) --> B[VS Code Extension\nCommand: Why Does This Exist?]
+
+    B --> C[git blame\nGet commit SHA for selected line]
+
+    C --> D{Commit looks\ntrivial?}
+    D -- Yes --> D1[Walk git log back\nfind meaningful commit]
+    D -- No --> E
+    D1 --> E
+
+    E{Commit has\nPR reference?}
+
+    E -- Yes --> F[GitHub API\nFetch PR details + description]
+    E -- No --> G[Fallback: Search PRs\nby short SHA in title/body]
+    G --> F
+
+    F --> H{PR has\nlinked ticket?}
+
+    H -- Yes --> I[Parse ticket IDs\nJIRA-123 / #456 / LINEAR-789]
+    H -- No --> J[Use PR title +\ndescription only]
+
+    I --> K{Ticket source?}
+    K -- GitHub Issues --> L1[GitHub Issues API]
+    K -- Jira --> L2[Jira REST API]
+    K -- Linear --> L3[Linear GraphQL API]
+
+    L1 & L2 & L3 --> M[Ticket title +\ndescription]
+
+    J --> N
+    M --> N[LLM Prompt Assembly\ncommit + PR + ticket context]
+
+    N --> O{LLM Provider}
+    O -- OpenAI --> O1[GPT-4o\njson_object mode]
+    O -- Anthropic --> O2[Claude 3.5 Sonnet]
+    O -- Ollama --> O3[Local model\ne.g. llama3]
+    O -- watsonx --> O4[IBM watsonx.ai\ne.g. Granite]
+
+    O1 & O2 & O3 & O4 --> P[Structured JSON\nsummary + explanation + confidence]
+
+    P --> Q([VS Code Webview Panel\nExplanation · Commit · PR · Tickets])
+
+    style A fill:#4A90D9,color:#fff
+    style Q fill:#27AE60,color:#fff
+    style O1 fill:#8E44AD,color:#fff
+    style O2 fill:#8E44AD,color:#fff
+    style O3 fill:#8E44AD,color:#fff
+    style O4 fill:#8E44AD,color:#fff

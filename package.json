@@ -1,0 +1,130 @@
+{
+  "name": "why-does-this-exist",
+  "displayName": "Why Does This Exist?",
+  "description": "Traces any line of code back through git blame \u2192 PR \u2192 ticket \u2192 LLM to explain why it was written",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "whyDoesThisExist.explain",
+        "title": "Why Does This Exist?",
+        "category": "Code Tracer"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "whyDoesThisExist.explain",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Why Does This Exist?",
+      "properties": {
+        "whyDoesThisExist.githubToken": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub Personal Access Token (repo scope)"
+        },
+        "whyDoesThisExist.openaiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key"
+        },
+        "whyDoesThisExist.jiraBaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Jira base URL (e.g. https://yourorg.atlassian.net)"
+        },
+        "whyDoesThisExist.jiraEmail": {
+          "type": "string",
+          "default": "",
+          "description": "Jira account email"
+        },
+        "whyDoesThisExist.jiraApiToken": {
+          "type": "string",
+          "default": "",
+          "description": "Jira API token"
+        },
+        "whyDoesThisExist.linearApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Linear API key"
+        },
+        "whyDoesThisExist.llmProvider": {
+          "type": "string",
+          "enum": ["openai", "anthropic", "ollama", "watsonx"],
+          "enumDescriptions": [
+            "OpenAI GPT-4o",
+            "Anthropic Claude 3.5 Sonnet",
+            "Ollama (local models, e.g. llama3, mistral)",
+            "IBM watsonx.ai"
+          ],
+          "default": "openai",
+          "description": "LLM provider to use for synthesis"
+        },
+        "whyDoesThisExist.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API Key (for Claude)"
+        },
+        "whyDoesThisExist.ollamaBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Ollama server base URL"
+        },
+        "whyDoesThisExist.ollamaModel": {
+          "type": "string",
+          "default": "llama3",
+          "description": "Ollama model name (e.g. llama3, mistral, codellama)"
+        },
+        "whyDoesThisExist.watsonxApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "IBM Cloud API key for watsonx.ai"
+        },
+        "whyDoesThisExist.watsonxProjectId": {
+          "type": "string",
+          "default": "",
+          "description": "watsonx.ai project ID"
+        },
+        "whyDoesThisExist.watsonxRegion": {
+          "type": "string",
+          "default": "us-south",
+          "description": "watsonx.ai region (e.g. us-south, eu-gb, jp-tok)"
+        },
+        "whyDoesThisExist.watsonxModel": {
+          "type": "string",
+          "default": "ibm/granite-13b-chat-v2",
+          "description": "watsonx.ai model ID (e.g. ibm/granite-13b-chat-v2, meta-llama/llama-3-1-70b-instruct)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@octokit/rest": "^20.0.0",
+    "openai": "^4.24.0",
+    "simple-git": "^3.22.0"
+  }
+}
