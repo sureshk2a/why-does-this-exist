@@ -1,4 +1,4 @@
-import { TicketInfo } from './types.js';
+import type { TicketInfo } from './types.js';
 
 const LINEAR_GQL_ENDPOINT = 'https://api.linear.app/graphql';
 
