@@ -1,4 +1,4 @@
-import { TicketInfo } from './types.js';
+import type { TicketInfo } from './types.js';
 
 export async function fetchJiraTicket(
   baseUrl: string,
